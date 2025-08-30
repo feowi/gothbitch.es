@@ -25,7 +25,7 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     transition: opacity 1s ease;
 }
 
-/* Responsive columns and bigger images */
+/* Responsive columns */
 @media (min-width: 2000px){ #images{ column-count: 8; } }
 @media (min-width: 1600px){ #images{ column-count: 6; } }
 @media (min-width: 1200px){ #images{ column-count: 5; } }
@@ -36,9 +36,16 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 /* Images */
 #images img {
     width:100%; border-radius:15px; margin-bottom:20px; display:block;
-    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease;
-    opacity:1; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    opacity:0; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease, opacity 0.6s ease, box-shadow 0.5s ease;
     position:relative;
+}
+#images img.fade-in-top{
+    transform: translateY(-20px);
+}
+#images img.visible{
+    opacity:1;
+    transform: translateY(0);
 }
 #images img:hover{
     transform: scale(1.06);
@@ -83,6 +90,7 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 #backTop {
     position:fixed; bottom:100px; left:30px; width:50px; height:50px;
     background:#ff69b4; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:24px; color:#fff; cursor:pointer; opacity:0; transition: opacity 0.4s ease, transform 0.3s ease;
+    z-index:1000;
 }
 #backTop:hover{ transform: scale(1.2); }
 #backTop.show{ opacity:1; }
@@ -131,7 +139,9 @@ window.addEventListener('scroll', ()=>{
     if(window.scrollY > 400) backTop.classList.add('show');
     else backTop.classList.remove('show');
 });
-backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+backTop.addEventListener('click', ()=>{
+    window.scrollTo({top:0, behavior:'smooth'});
+});
 
 function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
@@ -165,13 +175,17 @@ function displayImages(urls, prepend=false){
     urls.forEach(url=>{
         if(!existing.includes(url)){
             const img = document.createElement('img');
-            img.src=url; img.style.opacity=0;
+            img.src = url; 
+            img.classList.add('fade-in-top'); // start above
             if(prepend) imagesContainer.prepend(img);
             else imagesContainer.appendChild(img);
+
             setTimeout(()=>{
-                img.style.opacity=1;
-                img.scrollIntoView({behavior:'smooth', block:'nearest'}); // smooth scroll for new images
-                if(prepend){ img.classList.add('highlight'); setTimeout(()=>img.classList.remove('highlight'),2000); }
+                img.classList.add('visible'); // fade down
+                if(prepend){
+                    img.classList.add('highlight'); 
+                    setTimeout(()=>img.classList.remove('highlight'),2000); 
+                }
             },50);
         }
     });
