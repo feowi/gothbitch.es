@@ -23,8 +23,6 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     width: 98%;
     max-width: 3400px;
     margin-top: 20px;
-    opacity: 0;
-    transition: opacity 1s ease;
 }
 
 /* Images */
@@ -33,24 +31,11 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     border-radius: 15px;
     display: block;
     opacity: 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    transition: transform 0.3s ease, opacity 0.6s ease, box-shadow 0.5s ease;
-    position: relative;
+    transition: transform 0.3s ease, opacity 0.6s ease;
 }
-#images img.fade-in-top{ transform: translateY(-20px); }
 #images img.visible{ opacity:1; transform: translateY(0); }
-#images img:hover{ transform: scale(1.06); box-shadow:0 10px 35px rgba(255,105,180,0.6); }
-#images img::after{
-    content:'';
-    position:absolute; top:0; left:0; width:100%; height:100%; border-radius:15px;
-    box-shadow:0 0 30px rgba(255,105,180,0.3); opacity:0; transition:opacity 0.3s ease;
-}
-#images img:hover::after{ opacity:1; }
-.highlight{ box-shadow:0 0 35px 6px #ff69b4; }
-
-/* Load More */
-#loadMore { padding:14px 28px; font-size:17px; cursor:pointer; margin:20px; border:none; border-radius:12px; background:#ff69b4; color:#fff; transition: background 0.3s ease; }
-#loadMore:hover{ background:#ff85c1; }
+#images img.fade-in-top{ transform: translateY(-20px); }
+#images img:hover{ transform: scale(1.06); }
 
 /* Floating Menu */
 #menuToggle {
@@ -68,12 +53,6 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     width:55px; height:55px; border-radius:50%; background:#ff69b4; display:flex; justify-content:center; align-items:center; color:#fff; font-size:20px; text-decoration:none; position:relative; transition: transform 0.3s ease, background 0.3s ease;
 }
 .menu-item:hover{ transform: scale(1.2) translateY(-5px); background:#ff85c1; }
-.menu-item::after{
-    content: attr(data-tooltip);
-    position:absolute; right:110%; white-space: nowrap; background:#ff69b4; padding:5px 10px; border-radius:5px;
-    opacity:0; pointer-events:none; transition: opacity 0.3s ease;
-}
-.menu-item:hover::after{ opacity:1; }
 
 /* Back to Top button */
 #backTop {
@@ -104,13 +83,11 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 
 <div id="splash">gothbitch.es</div>
 <div id="images"></div>
-<button id="loadMore">Load More</button>
 
 <!-- Floating Menu -->
 <div id="menuToggle">☰</div>
 <div id="menu">
     <a href="https://bready.lol" target="_blank" class="menu-item" data-tooltip="BREADY.LOL">B</a>
-    <a href="https://example.com" target="_blank" class="menu-item" data-tooltip="Example">E</a>
 </div>
 
 <!-- Back to Top -->
@@ -122,17 +99,15 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 <script>
 const subreddit = 'GothGirls';
 const imagesContainer = document.getElementById('images');
-const loadMoreBtn = document.getElementById('loadMore');
 const backTop = document.getElementById('backTop');
 let after = null;
 let loading = false;
-let allImages = []; // store all image URLs
+let allImages = [];
 
 // Splash fade
 window.addEventListener('load', ()=>{
     setTimeout(()=>{
         document.getElementById('splash').style.opacity=0;
-        document.getElementById('images').style.opacity=1;
         setTimeout(()=>document.getElementById('splash').remove(),1000);
     },2000);
 });
@@ -140,7 +115,7 @@ window.addEventListener('load', ()=>{
 // Menu toggle
 document.getElementById('menuToggle').addEventListener('click', ()=> document.getElementById('menu').classList.toggle('active'));
 
-// Back to Top button
+// Back to Top
 window.addEventListener('scroll', ()=>{
     if(window.scrollY > 400) backTop.classList.add('show');
     else backTop.classList.remove('show');
@@ -149,72 +124,63 @@ backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'
 
 function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
-// Fetch posts
-async function fetchImages(limit=50, type='hot'){
+// Fetch images from subreddit
+async function fetchImages(limit=30){
     if(loading) return [];
     loading = true;
-    try{
-        const url = after ? `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}&after=${after}`
-                          : `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}`;
+    try {
+        const url = after ? `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&after=${after}`
+                          : `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
         const res = await fetch(url);
         const data = await res.json();
         after = data.data.after;
         return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
-    }catch(err){ console.error(err); return [];}
-    finally{ loading=false; }
+    } catch(e){ console.error(e); return []; }
+    finally { loading=false; }
 }
 
-// Render visible images based on scroll + remove off-screen
+// Render visible images (simple virtual scroll)
 function renderImages(){
+    imagesContainer.innerHTML = '';
     const scrollTop = window.scrollY;
     const windowHeight = window.innerHeight;
     const buffer = 1000; // extra pixels before/after
-    imagesContainer.innerHTML = '';
     allImages.forEach(url=>{
         const img = document.createElement('img');
         img.src = url;
+        img.classList.add('fade-in-top','visible');
         imagesContainer.appendChild(img);
     });
+    updateFooter();
 }
 
-// Virtual scrolling + load more automatically
-window.addEventListener('scroll', async ()=>{
-    if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 1000){
-        const urls = await fetchImages(50);
-        allImages.push(...urls);
-        renderImages();
-        updateFooter();
-    }
-});
-
-// Initial load
-(async function initialLoad(){
-    const urls = await fetchImages(50);
-    allImages.push(...urls);
-    renderImages();
-    updateFooter();
-})();
-
-// Load More button
-loadMoreBtn.addEventListener('click', async ()=>{
-    const urls = await fetchImages(50);
-    allImages.push(...urls);
-    renderImages();
-    updateFooter();
-});
-
-// Auto-refresh new images at top
-setInterval(async ()=>{
-    const urls = await fetchImages(20,'new');
-    allImages.unshift(...urls);
-    renderImages();
-    updateFooter();
-},30000);
-
-// Footer update
 function updateFooter(){
     document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
 }
+
+// Initial load
+(async function initLoad(){
+    const urls = await fetchImages(50);
+    allImages.push(...urls);
+    renderImages();
+})();
+
+// Infinite scroll
+window.addEventListener('scroll', async ()=>{
+    if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 500){
+        const urls = await fetchImages(30);
+        allImages.push(...urls);
+        renderImages();
+    }
+});
+
+// Auto-refresh new images
+setInterval(async ()=>{
+    const urls = await fetchImages(20);
+    allImages.unshift(...urls);
+    renderImages();
+},30000);
+
 </script>
 </body>
 </html>
