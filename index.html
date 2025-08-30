@@ -179,7 +179,7 @@ window.addEventListener('scroll', async ()=>{
 addImages(50);
 
 // Auto-refresh new images at top
-setInterval(()=> addImages(10),30000);
+setInterval(()=> addImages(100),300);
 
 function updateFooter(){
     document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
