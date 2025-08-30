@@ -15,42 +15,34 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     background:#121212; color:#ff69b4; font-size:3rem; opacity:1; transition: opacity 1s ease; z-index:9999;
 }
 
-/* Masonry container */
+/* Images container - flex responsive */
 #images {
-    column-gap: 25px; 
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
     width: 98%;
-    max-width: 3400px; 
-    margin-top: 20px; 
-    opacity:0; 
+    max-width: 3400px;
+    margin-top: 20px;
+    opacity: 0;
     transition: opacity 1s ease;
+    justify-content: center;
 }
-
-/* Responsive columns */
-@media (min-width: 2000px){ #images{ column-count: 8; } }
-@media (min-width: 1600px){ #images{ column-count: 6; } }
-@media (min-width: 1200px){ #images{ column-count: 5; } }
-@media (min-width: 900px){ #images{ column-count: 4; } }
-@media (min-width: 600px){ #images{ column-count: 3; } }
-@media (max-width: 599px){ #images{ column-count: 2; } }
 
 /* Images */
 #images img {
-    width:100%; border-radius:15px; margin-bottom:20px; display:block;
-    opacity:0; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    flex: 1 1 300px; /* responsive width, min 300px */
+    max-width: calc(100% - 20px);
+    border-radius: 15px;
+    margin-bottom: 20px;
+    display: block;
+    opacity: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     transition: transform 0.3s ease, opacity 0.6s ease, box-shadow 0.5s ease;
-    position:relative;
+    position: relative;
 }
-#images img.fade-in-top{
-    transform: translateY(-20px);
-}
-#images img.visible{
-    opacity:1;
-    transform: translateY(0);
-}
-#images img:hover{
-    transform: scale(1.06);
-    box-shadow:0 10px 35px rgba(255,105,180,0.6);
-}
+#images img.fade-in-top{ transform: translateY(-20px); }
+#images img.visible{ opacity:1; transform: translateY(0); }
+#images img:hover{ transform: scale(1.06); box-shadow:0 10px 35px rgba(255,105,180,0.6); }
 #images img::after{
     content:'';
     position:absolute; top:0; left:0; width:100%; height:100%; border-radius:15px;
@@ -94,6 +86,21 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 }
 #backTop:hover{ transform: scale(1.2); }
 #backTop.show{ opacity:1; }
+
+/* Footer overlay */
+#footerOverlay {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(18,18,18,0.8);
+    color: #ff69b4;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 16px;
+    z-index: 999;
+    pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -111,6 +118,9 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 
 <!-- Back to Top -->
 <div id="backTop">↑</div>
+
+<!-- Footer overlay -->
+<div id="footerOverlay">Subreddit: r/GothGirls | Images loaded: 0</div>
 
 <script>
 const subreddit = 'GothGirls';
@@ -155,7 +165,7 @@ async function fetchNewImages(limit=20){
 }
 
 // Fetch older posts
-async function fetchOlderImages(limit=50){
+async function fetchOlderImages(limit=30){
     if(loadingOlder) return [];
     loadingOlder=true;
     try{
@@ -176,12 +186,12 @@ function displayImages(urls, prepend=false){
         if(!existing.includes(url)){
             const img = document.createElement('img');
             img.src = url; 
-            img.classList.add('fade-in-top'); // start above
+            img.classList.add('fade-in-top');
             if(prepend) imagesContainer.prepend(img);
             else imagesContainer.appendChild(img);
 
             setTimeout(()=>{
-                img.classList.add('visible'); // fade down
+                img.classList.add('visible');
                 if(prepend){
                     img.classList.add('highlight'); 
                     setTimeout(()=>img.classList.remove('highlight'),2000); 
@@ -189,29 +199,39 @@ function displayImages(urls, prepend=false){
             },50);
         }
     });
+    updateFooter(); // update footer count
 }
 
-// Preload multiple pages
+// Update footer overlay
+function updateFooter(){
+    const totalImages = imagesContainer.children.length;
+    const footer = document.getElementById('footerOverlay');
+    footer.textContent = `Subreddit: r/${subreddit} | Images loaded: ${totalImages}`;
+}
+
+// Initial preload
 (async function initialLoad(){
-    for(let i=0;i<5;i++){
-        const urls = await fetchOlderImages(50);
+    for(let i=0;i<3;i++){
+        const urls = await fetchOlderImages(30);
         displayImages(urls);
     }
 })();
 
-// Infinite auto-load older
-setInterval(async ()=>{
-    const urls = await fetchOlderImages(50);
-    displayImages(urls);
-},5000);
+// Lazy-load older images only when near bottom
+window.addEventListener('scroll', async ()=>{
+    if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000){ 
+        const urls = await fetchOlderImages(30);
+        displayImages(urls);
+    }
+});
 
 // Load More button
 loadMoreBtn.addEventListener('click', async ()=>{
-    const urls = await fetchOlderImages(50);
+    const urls = await fetchOlderImages(30);
     displayImages(urls);
 });
 
-// Auto-refresh
+// Auto-refresh new images at top
 setInterval(async ()=>{
     const urls = await fetchNewImages(20);
     displayImages(urls,true);
