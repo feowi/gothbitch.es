@@ -6,7 +6,7 @@
 <title>GothGirls Live Feed</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-height:100vh; overflow-x:hidden; display:flex; flex-direction:column; align-items:center; }
+body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-height:100vh; overflow-x:hidden; display:flex; flex-direction:column; align-items:center; scroll-behavior:smooth; }
 
 /* Splash */
 #splash {
@@ -17,24 +17,43 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 
 /* Masonry container */
 #images {
-    column-gap: 15px; width:95%; max-width:1400px; margin-top:20px; opacity:0; transition: opacity 1s ease;
+    column-gap: 25px; 
+    width: 98%;
+    max-width: 3400px; 
+    margin-top: 20px; 
+    opacity:0; 
+    transition: opacity 1s ease;
 }
-@media (min-width:1200px){#images{column-count:4;}}
-@media (min-width:900px){#images{column-count:3;}}
-@media (min-width:600px){#images{column-count:2;}}
-@media (max-width:599px){#images{column-count:1;}}
+
+/* Responsive columns and bigger images */
+@media (min-width: 2000px){ #images{ column-count: 8; } }
+@media (min-width: 1600px){ #images{ column-count: 6; } }
+@media (min-width: 1200px){ #images{ column-count: 5; } }
+@media (min-width: 900px){ #images{ column-count: 4; } }
+@media (min-width: 600px){ #images{ column-count: 3; } }
+@media (max-width: 599px){ #images{ column-count: 2; } }
 
 /* Images */
 #images img {
-    width:100%; border-radius:15px; margin-bottom:15px; display:block;
-    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease; opacity:1;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    width:100%; border-radius:15px; margin-bottom:20px; display:block;
+    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease;
+    opacity:1; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    position:relative;
 }
-#images img:hover{ transform: scale(1.05); box-shadow:0 8px 30px rgba(255,105,180,0.6); }
-.highlight{ box-shadow:0 0 30px 5px #ff69b4; }
+#images img:hover{
+    transform: scale(1.06);
+    box-shadow:0 10px 35px rgba(255,105,180,0.6);
+}
+#images img::after{
+    content:'';
+    position:absolute; top:0; left:0; width:100%; height:100%; border-radius:15px;
+    box-shadow:0 0 30px rgba(255,105,180,0.3); opacity:0; transition:opacity 0.3s ease;
+}
+#images img:hover::after{ opacity:1; }
+.highlight{ box-shadow:0 0 35px 6px #ff69b4; }
 
 /* Load More */
-#loadMore { padding:12px 25px; font-size:16px; cursor:pointer; margin:20px; border:none; border-radius:10px; background:#ff69b4; color:#fff; transition: background 0.3s ease; }
+#loadMore { padding:14px 28px; font-size:17px; cursor:pointer; margin:20px; border:none; border-radius:12px; background:#ff69b4; color:#fff; transition: background 0.3s ease; }
 #loadMore:hover{ background:#ff85c1; }
 
 /* Floating Menu */
@@ -42,23 +61,31 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     position:fixed; bottom:30px; right:30px; width:60px; height:60px;
     background:#ff69b4; border-radius:50%; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:30px; color:#fff; z-index:1000; transition: transform 0.3s ease;
 }
-#menuToggle:hover{ transform: scale(1.1); }
+#menuToggle:hover{ transform: scale(1.15) rotate(5deg); }
 
 #menu {
-    position:fixed; bottom:100px; right:30px; display:flex; flex-direction:column; gap:15px; opacity:0; pointer-events:none; transition: all 0.4s ease;
+    position:fixed; bottom:100px; right:30px; display:flex; flex-direction:column; gap:18px; opacity:0; pointer-events:none; transition: all 0.4s ease;
 }
 #menu.active{ opacity:1; pointer-events:auto; transform: translateY(0); }
 
 .menu-item {
-    width:50px; height:50px; border-radius:50%; background:#ff69b4; display:flex; justify-content:center; align-items:center; color:#fff; font-size:18px; text-decoration:none; position:relative; transition: transform 0.3s ease, background 0.3s ease;
+    width:55px; height:55px; border-radius:50%; background:#ff69b4; display:flex; justify-content:center; align-items:center; color:#fff; font-size:20px; text-decoration:none; position:relative; transition: transform 0.3s ease, background 0.3s ease;
 }
-.menu-item:hover{ transform: scale(1.1); background:#ff85c1; }
+.menu-item:hover{ transform: scale(1.2) translateY(-5px); background:#ff85c1; }
 .menu-item::after{
     content: attr(data-tooltip);
     position:absolute; right:110%; white-space: nowrap; background:#ff69b4; padding:5px 10px; border-radius:5px;
     opacity:0; pointer-events:none; transition: opacity 0.3s ease;
 }
 .menu-item:hover::after{ opacity:1; }
+
+/* Back to Top button */
+#backTop {
+    position:fixed; bottom:100px; left:30px; width:50px; height:50px;
+    background:#ff69b4; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:24px; color:#fff; cursor:pointer; opacity:0; transition: opacity 0.4s ease, transform 0.3s ease;
+}
+#backTop:hover{ transform: scale(1.2); }
+#backTop.show{ opacity:1; }
 </style>
 </head>
 <body>
@@ -74,10 +101,14 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     <a href="https://example.com" target="_blank" class="menu-item" data-tooltip="Example">E</a>
 </div>
 
+<!-- Back to Top -->
+<div id="backTop">↑</div>
+
 <script>
 const subreddit = 'GothGirls';
 const imagesContainer = document.getElementById('images');
 const loadMoreBtn = document.getElementById('loadMore');
+const backTop = document.getElementById('backTop');
 let after = null;
 let loadingOlder = false;
 
@@ -94,6 +125,13 @@ window.addEventListener('load', ()=>{
 const menuToggle = document.getElementById('menuToggle');
 const menu = document.getElementById('menu');
 menuToggle.addEventListener('click', ()=> menu.classList.toggle('active'));
+
+// Back to Top button
+window.addEventListener('scroll', ()=>{
+    if(window.scrollY > 400) backTop.classList.add('show');
+    else backTop.classList.remove('show');
+});
+backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
 
 function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
@@ -132,6 +170,7 @@ function displayImages(urls, prepend=false){
             else imagesContainer.appendChild(img);
             setTimeout(()=>{
                 img.style.opacity=1;
+                img.scrollIntoView({behavior:'smooth', block:'nearest'}); // smooth scroll for new images
                 if(prepend){ img.classList.add('highlight'); setTimeout(()=>img.classList.remove('highlight'),2000); }
             },50);
         }
