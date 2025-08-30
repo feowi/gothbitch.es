@@ -6,7 +6,7 @@
 <title>GothGirls Live Feed</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-height:100vh; overflow-x:hidden; display:flex; flex-direction:column; align-items:center; scroll-behavior:smooth; }
+body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-height:100vh; overflow-x:hidden; scroll-behavior:smooth; }
 
 /* Splash */
 #splash {
@@ -139,48 +139,52 @@ async function fetchImages(limit=30){
     finally { loading=false; }
 }
 
-// Render visible images (simple virtual scroll)
-function renderImages(){
-    imagesContainer.innerHTML = '';
-    const scrollTop = window.scrollY;
-    const windowHeight = window.innerHeight;
-    const buffer = 1000; // extra pixels before/after
-    allImages.forEach(url=>{
+// Function to add new images to DOM with lazy load
+async function addImages(count=30){
+    const urls = await fetchImages(count);
+    urls.forEach(url=>{
         const img = document.createElement('img');
-        img.src = url;
-        img.classList.add('fade-in-top','visible');
+        img.dataset.src = url;
+        img.classList.add('fade-in-top');
         imagesContainer.appendChild(img);
+        lazyLoadObserver.observe(img);
+        allImages.push(img);
     });
     updateFooter();
 }
 
-function updateFooter(){
-    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
-}
+// Lazy load using IntersectionObserver
+const lazyLoadObserver = new IntersectionObserver((entries, observer)=>{
+    entries.forEach(entry=>{
+        if(entry.isIntersecting){
+            const img = entry.target;
+            if(img.dataset.src){
+                img.src = img.dataset.src;
+                img.onload = ()=> img.classList.add('visible');
+                img.removeAttribute('data-src');
+            }
+        }
+    });
+},{rootMargin:'500px'});
 
-// Initial load
-(async function initLoad(){
-    const urls = await fetchImages(50);
-    allImages.push(...urls);
-    renderImages();
-})();
-
-// Infinite scroll
+// Infinite scroll: load more when near bottom
 window.addEventListener('scroll', async ()=>{
-    if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 500){
-        const urls = await fetchImages(30);
-        allImages.push(...urls);
-        renderImages();
+    if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 1000){
+        addImages(30);
     }
 });
 
-// Auto-refresh new images
-setInterval(async ()=>{
-    const urls = await fetchImages(20);
-    allImages.unshift(...urls);
-    renderImages();
-},30000);
+// Initial load
+addImages(50);
 
+// Auto-refresh new images at top
+setInterval(()=>{
+    addImages(20);
+},300);
+
+function updateFooter(){
+    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
+}
 </script>
 </body>
 </html>
