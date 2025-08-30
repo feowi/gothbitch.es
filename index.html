@@ -5,17 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GothGirls Live Feed</title>
 <style>
-  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-  #images { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px; }
-  img { max-width: 300px; border-radius: 10px; cursor: pointer; transition: transform 0.2s, opacity 0.5s ease, box-shadow 0.5s ease; opacity: 1; }
-  img:hover { transform: scale(1.05); }
-  .highlight { box-shadow: 0 0 20px 5px #ff69b4; }
-  #loadMore { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+  /* Basic reset and modern background */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Arial', sans-serif; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+  
+  /* Splash screen */
+  #splash {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#121212;
+    color:#ff69b4;
+    font-size:3rem;
+    opacity:1;
+    transition: opacity 1s ease;
+    z-index:9999;
+  }
+
+  #images { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 20px; opacity: 0; transition: opacity 1s ease; }
+
+  img {
+    max-width: 400px;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease;
+    opacity: 1;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  img:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(255,105,180,0.6); }
+
+  .highlight { box-shadow: 0 0 30px 5px #ff69b4; }
+
+  #loadMore {
+    padding: 12px 25px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 20px;
+    border: none;
+    border-radius: 10px;
+    background: #ff69b4;
+    color: #fff;
+    transition: background 0.3s ease;
+  }
+  #loadMore:hover { background: #ff85c1; }
 </style>
 </head>
 <body>
 
-<h1>GothGirls Live Feed</h1>
+<div id="splash">gothbitch.es</div>
 <div id="images"></div>
 <button id="loadMore">Load More</button>
 
@@ -23,10 +63,19 @@
 const subreddit = 'GothGirls';
 const imagesContainer = document.getElementById('images');
 const loadMoreBtn = document.getElementById('loadMore');
-let after = null; // For infinite scroll pagination
+let after = null;
 let loadingOlder = false;
 
-// Helper: shuffle array
+// Splash screen fade
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        document.getElementById('splash').style.opacity = 0;
+        document.getElementById('images').style.opacity = 1;
+        setTimeout(() => document.getElementById('splash').remove(), 1000);
+    }, 2000); // show splash for 2 seconds
+});
+
+// Shuffle helper
 function shuffleArray(array) {
     return array.sort(() => Math.random() - 0.5);
 }
@@ -96,7 +145,7 @@ function displayImages(urls, prepend = false) {
     displayImages(urls);
 })();
 
-// Infinite scroll: load older posts when near bottom
+// Infinite scroll: load older posts
 window.addEventListener('scroll', async () => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
         const urls = await fetchOlderImages(20);
@@ -104,7 +153,7 @@ window.addEventListener('scroll', async () => {
     }
 });
 
-// Load More button: fetch older posts manually
+// Load More button
 loadMoreBtn.addEventListener('click', async () => {
     const urls = await fetchOlderImages(20);
     displayImages(urls);
