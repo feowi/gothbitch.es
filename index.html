@@ -1,46 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GothGirls Live Feed Highlight</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  #images { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px; }
+  img { max-width: 300px; border-radius: 10px; cursor: pointer; transition: transform 0.2s, opacity 0.5s ease, box-shadow 0.5s ease; opacity: 1; }
+  img:hover { transform: scale(1.05); }
+  .highlight { box-shadow: 0 0 20px 5px #ff69b4; } /* temporary highlight effect */
+</style>
+</head>
+<body>
 
-    <title>gothbitch.es</title>
+<h1>GothGirls Live Feed Highlight</h1>
+<div id="images"></div>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/xicon" href="/favicon.ico" />
+<script>
+const subreddit = 'GothGirls';
+const imagesContainer = document.getElementById('images');
+let after = null; // For pagination
+let loading = false;
 
-    <!-- Open Graph / Discord Embed -->
-    <meta property="og:title" content="@wavedotnet" />
-    <meta property="og:description" content="i love goth bitches" />
-    <meta property="og:image" content="https://gothbitch.es/goth.png" />
-    <meta property="og:url" content="https://gothbitch.es" />
-    <meta name="twitter:card" content="summary_large_image" />
+function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
 
-    <!-- Instant redirect -->
-    <meta http-equiv="refresh" content="0;url=https://bready.lol" />
+// Fetch a batch of images
+async function fetchImages(limit = 20) {
+    if (loading) return [];
+    loading = true;
+    try {
+        const url = after 
+            ? `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&after=${after}`
+            : `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        after = data.data.after;
 
-    <script>
-      document.title = "Redirecting...";
-    </script>
+        let newUrls = data.data.children
+            .map(post => post.data.url)
+            .filter(url => url.match(/\.(jpeg|jpg|gif|png)$/));
 
-    <style>
-      body {
-        background-color: #000;
-        color: #fff;
-        font-family: monospace;
-        text-align: center;
-        margin-top: 2rem;
-      }
+        return shuffleArray(newUrls);
 
-      a {
-        color: #fff;
-        text-decoration: underline;
-      }
-    </style>
-  </head>
-  <body>
-    <p>
-      Redirecting you... if not, <a href="https://bready.lol">click here</a>.
-    </p>
-  </body>
+    } catch (error) {
+        console.error('Error fetching subreddit images:', error);
+        return [];
+    } finally {
+        loading = false;
+    }
+}
+
+// Add images to the container
+function displayImages(urls, prepend = false) {
+    urls.forEach(url => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.opacity = 0;
+        if (prepend) {
+            imagesContainer.prepend(img);
+        } else {
+            imagesContainer.appendChild(img);
+        }
+        setTimeout(() => {
+            img.style.opacity = 1;
+            if (prepend) {
+                // Highlight new images briefly
+                img.classList.add('highlight');
+                setTimeout(() => img.classList.remove('highlight'), 2000);
+            }
+        }, 50);
+    });
+}
+
+// Load initial images
+(async function initialLoad() {
+    const urls = await fetchImages(30);
+    displayImages(urls);
+})();
+
+// Infinite scroll for older images
+window.addEventListener('scroll', async () => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        const urls = await fetchImages(20);
+        displayImages(urls);
+    }
+});
+
+// Auto-refresh to add new images at top every 30 seconds
+setInterval(async () => {
+    const urls = await fetchImages(10);
+    displayImages(urls, true); // prepend at top with highlight
+}, 30000);
+</script>
+
+</body>
 </html>
