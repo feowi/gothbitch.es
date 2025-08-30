@@ -126,6 +126,8 @@ const loadMoreBtn = document.getElementById('loadMore');
 const backTop = document.getElementById('backTop');
 let after = null;
 let loadingOlder = false;
+let allImages = []; // store all image URLs
+let buffer = 40; // number of images visible + buffer
 
 // Splash fade
 window.addEventListener('load', ()=>{
@@ -137,103 +139,86 @@ window.addEventListener('load', ()=>{
 });
 
 // Menu toggle
-const menuToggle = document.getElementById('menuToggle');
-const menu = document.getElementById('menu');
-menuToggle.addEventListener('click', ()=> menu.classList.toggle('active'));
+document.getElementById('menuToggle').addEventListener('click', ()=> document.getElementById('menu').classList.toggle('active'));
 
 // Back to Top button
 window.addEventListener('scroll', ()=>{
     if(window.scrollY > 400) backTop.classList.add('show');
     else backTop.classList.remove('show');
 });
-backTop.addEventListener('click', ()=>{
-    window.scrollTo({top:0, behavior:'smooth'});
-});
+backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
 
 function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
-// Fetch new posts
-async function fetchNewImages(limit=20){
-    try{
-        const res = await fetch(`https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`);
-        const data = await res.json();
-        return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
-    }catch(err){ console.error(err); return []; }
-}
-
-// Fetch older posts
-async function fetchOlderImages(limit=30){
+// Fetch posts
+async function fetchImages(limit=50, type='hot'){
     if(loadingOlder) return [];
-    loadingOlder=true;
+    loadingOlder = true;
     try{
-        const url = after ? `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&after=${after}`
-                          : `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
+        const url = after ? `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}&after=${after}`
+                          : `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}`;
         const res = await fetch(url);
         const data = await res.json();
         after = data.data.after;
         return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
     }catch(err){ console.error(err); return [];}
-    finally{ loadingOlder=false; }
+    finally{ loadingOlder = false; }
 }
 
-// Display images
-function displayImages(urls, prepend=false){
-    const existing = Array.from(imagesContainer.children).map(img=>img.src);
-    urls.forEach(url=>{
-        if(!existing.includes(url)){
-            const img = document.createElement('img');
-            img.src = url; 
-            img.classList.add('fade-in-top');
-            if(prepend) imagesContainer.prepend(img);
-            else imagesContainer.appendChild(img);
-
-            setTimeout(()=>{
-                img.classList.add('visible');
-                if(prepend){
-                    img.classList.add('highlight'); 
-                    setTimeout(()=>img.classList.remove('highlight'),2000); 
-                }
-            },50);
-        }
-    });
-    updateFooter(); // update footer count
+// Render only visible images
+function renderImages(){
+    imagesContainer.innerHTML = '';
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const visibleStart = Math.max(0, Math.floor(scrollTop / 220) - 10);
+    const visibleEnd = Math.min(allImages.length, visibleStart + buffer);
+    for(let i=visibleStart; i<visibleEnd; i++){
+        const img = document.createElement('img');
+        img.src = allImages[i];
+        img.classList.add('fade-in-top','visible');
+        imagesContainer.appendChild(img);
+    }
+    updateFooter();
 }
 
-// Update footer overlay
+// Update footer
 function updateFooter(){
-    const totalImages = imagesContainer.children.length;
-    const footer = document.getElementById('footerOverlay');
-    footer.textContent = `Subreddit: r/${subreddit} | Images loaded: ${totalImages}`;
+    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
 }
 
-// Initial preload
+// Load initial images
 (async function initialLoad(){
-    for(let i=0;i<3;i++){
-        const urls = await fetchOlderImages(30);
-        displayImages(urls);
+    for(let i=0;i<4;i++){
+        const urls = await fetchImages(50);
+        allImages.push(...urls);
+        renderImages();
     }
 })();
 
-// Lazy-load older images only when near bottom
+// Infinite scroll + virtual render
 window.addEventListener('scroll', async ()=>{
-    if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000){ 
-        const urls = await fetchOlderImages(30);
-        displayImages(urls);
+    const scrollBottom = window.scrollY + window.innerHeight;
+    if(scrollBottom >= document.body.offsetHeight - 1200){
+        const urls = await fetchImages(50);
+        allImages.push(...urls);
     }
+    renderImages();
 });
 
 // Load More button
 loadMoreBtn.addEventListener('click', async ()=>{
-    const urls = await fetchOlderImages(30);
-    displayImages(urls);
+    const urls = await fetchImages(50);
+    allImages.push(...urls);
+    renderImages();
 });
 
 // Auto-refresh new images at top
 setInterval(async ()=>{
-    const urls = await fetchNewImages(20);
-    displayImages(urls,true);
+    const urls = await fetchImages(20,'new');
+    allImages.unshift(...urls);
+    renderImages();
 },30000);
-</script>
 
+</script>
 </body>
 </html>
