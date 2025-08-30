@@ -95,7 +95,7 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
 <div id="backTop">↑</div>
 
 <!-- Footer overlay -->
-<div id="footerOverlay">Subreddit: r/GothGirls | Images loaded: 0</div>
+<div id="footerOverlay">made by bready | Images loaded: 0</div>
 
 <script>
 const subreddit = 'GothGirls';
@@ -182,7 +182,7 @@ addImages(50);
 setInterval(()=> addImages(1000),300);
 
 function updateFooter(){
-    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
+    document.getElementById('footerOverlay').textContent = `made by bready | Images loaded: ${allImages.length}`;
 }
 </script>
 </body>
