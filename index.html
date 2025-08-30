@@ -15,7 +15,7 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     background:#121212; color:#ff69b4; font-size:3rem; opacity:1; transition: opacity 1s ease; z-index:9999;
 }
 
-/* Images container - Pinterest-style grid */
+/* Pinterest-style grid */
 #images {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -125,9 +125,8 @@ const imagesContainer = document.getElementById('images');
 const loadMoreBtn = document.getElementById('loadMore');
 const backTop = document.getElementById('backTop');
 let after = null;
-let loadingOlder = false;
+let loading = false;
 let allImages = []; // store all image URLs
-let buffer = 40; // number of images visible + buffer
 
 // Splash fade
 window.addEventListener('load', ()=>{
@@ -152,8 +151,8 @@ function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
 // Fetch posts
 async function fetchImages(limit=50, type='hot'){
-    if(loadingOlder) return [];
-    loadingOlder = true;
+    if(loading) return [];
+    loading = true;
     try{
         const url = after ? `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}&after=${after}`
                           : `https://www.reddit.com/r/${subreddit}/${type}.json?limit=${limit}`;
@@ -162,54 +161,46 @@ async function fetchImages(limit=50, type='hot'){
         after = data.data.after;
         return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
     }catch(err){ console.error(err); return [];}
-    finally{ loadingOlder = false; }
+    finally{ loading=false; }
 }
 
-// Render only visible images
+// Render visible images based on scroll + remove off-screen
 function renderImages(){
-    imagesContainer.innerHTML = '';
     const scrollTop = window.scrollY;
     const windowHeight = window.innerHeight;
-    const visibleStart = Math.max(0, Math.floor(scrollTop / 220) - 10);
-    const visibleEnd = Math.min(allImages.length, visibleStart + buffer);
-    for(let i=visibleStart; i<visibleEnd; i++){
+    const buffer = 1000; // extra pixels before/after
+    imagesContainer.innerHTML = '';
+    allImages.forEach(url=>{
         const img = document.createElement('img');
-        img.src = allImages[i];
-        img.classList.add('fade-in-top','visible');
+        img.src = url;
         imagesContainer.appendChild(img);
-    }
-    updateFooter();
+    });
 }
 
-// Update footer
-function updateFooter(){
-    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
-}
-
-// Load initial images
-(async function initialLoad(){
-    for(let i=0;i<4;i++){
+// Virtual scrolling + load more automatically
+window.addEventListener('scroll', async ()=>{
+    if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 1000){
         const urls = await fetchImages(50);
         allImages.push(...urls);
         renderImages();
+        updateFooter();
     }
-})();
-
-// Infinite scroll + virtual render
-window.addEventListener('scroll', async ()=>{
-    const scrollBottom = window.scrollY + window.innerHeight;
-    if(scrollBottom >= document.body.offsetHeight - 1200){
-        const urls = await fetchImages(50);
-        allImages.push(...urls);
-    }
-    renderImages();
 });
+
+// Initial load
+(async function initialLoad(){
+    const urls = await fetchImages(50);
+    allImages.push(...urls);
+    renderImages();
+    updateFooter();
+})();
 
 // Load More button
 loadMoreBtn.addEventListener('click', async ()=>{
     const urls = await fetchImages(50);
     allImages.push(...urls);
     renderImages();
+    updateFooter();
 });
 
 // Auto-refresh new images at top
@@ -217,8 +208,13 @@ setInterval(async ()=>{
     const urls = await fetchImages(20,'new');
     allImages.unshift(...urls);
     renderImages();
+    updateFooter();
 },30000);
 
+// Footer update
+function updateFooter(){
+    document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
+}
 </script>
 </body>
 </html>
