@@ -15,27 +15,35 @@ body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-heigh
     background:#121212; color:#ff69b4; font-size:3rem; opacity:1; transition: opacity 1s ease; z-index:9999;
 }
 
-/* Pinterest-style grid */
-#images {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    width: 98%;
-    max-width: 3400px;
+/* Container for masonry columns */
+#images { 
+    display: flex;
+    justify-content: center;
     margin-top: 20px;
+    width: 98%;
+    max-width: 3440px;
+    gap: 15px;
+}
+
+/* Column style */
+.masonry-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    flex: 1;
 }
 
 /* Images */
 #images img {
     width: 100%;
-    border-radius: 15px;
     display: block;
+    border-radius: 15px;
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.6s ease;
 }
 #images img.visible{ opacity:1; transform: translateY(0); }
 #images img.fade-in-top{ transform: translateY(-20px); }
-#images img:hover{ transform: scale(1.06); }
+#images img:hover{ transform: scale(1.05); }
 
 /* Floating Menu */
 #menuToggle {
@@ -103,6 +111,7 @@ const backTop = document.getElementById('backTop');
 let after = null;
 let loading = false;
 let allImages = [];
+let columns = [];
 
 // Splash fade
 window.addEventListener('load', ()=>{
@@ -124,7 +133,7 @@ backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'
 
 function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
 
-// Fetch images from subreddit
+// Fetch images
 async function fetchImages(limit=30){
     if(loading) return [];
     loading = true;
@@ -139,22 +148,36 @@ async function fetchImages(limit=30){
     finally { loading=false; }
 }
 
-// Function to add new images to DOM with lazy load
-async function addImages(count=30){
-    const urls = await fetchImages(count);
-    urls.forEach(url=>{
-        const img = document.createElement('img');
-        img.dataset.src = url;
-        img.classList.add('fade-in-top');
-        imagesContainer.appendChild(img);
-        lazyLoadObserver.observe(img);
-        allImages.push(img);
-    });
-    updateFooter();
+// Initialize columns based on container width
+function initColumns(){
+    imagesContainer.innerHTML = '';
+    const containerWidth = imagesContainer.clientWidth;
+    let colCount = Math.floor(containerWidth / 250); // 250px approx per column
+    if(colCount < 1) colCount = 1;
+    columns = [];
+    for(let i=0;i<colCount;i++){
+        const col = document.createElement('div');
+        col.classList.add('masonry-column');
+        imagesContainer.appendChild(col);
+        columns.push(col);
+    }
 }
 
-// Lazy load using IntersectionObserver
-const lazyLoadObserver = new IntersectionObserver((entries, observer)=>{
+// Add images to shortest column
+function appendImageToColumn(img){
+    let shortest = columns[0];
+    let minHeight = shortest.offsetHeight;
+    for(const col of columns){
+        if(col.offsetHeight < minHeight){
+            minHeight = col.offsetHeight;
+            shortest = col;
+        }
+    }
+    shortest.appendChild(img);
+}
+
+// Lazy load with IntersectionObserver
+const lazyLoadObserver = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
         if(entry.isIntersecting){
             const img = entry.target;
@@ -167,20 +190,40 @@ const lazyLoadObserver = new IntersectionObserver((entries, observer)=>{
     });
 },{rootMargin:'500px'});
 
-// Infinite scroll: load more when near bottom
+// Add images
+async function addImages(count=30){
+    const urls = await fetchImages(count);
+    urls.forEach(url=>{
+        const img = document.createElement('img');
+        img.dataset.src = url;
+        img.classList.add('fade-in-top');
+        appendImageToColumn(img);
+        lazyLoadObserver.observe(img);
+        allImages.push(img);
+    });
+    updateFooter();
+}
+
+// Infinite scroll
 window.addEventListener('scroll', async ()=>{
     if(window.scrollY + window.innerHeight >= document.body.offsetHeight - 1000){
         addImages(30);
     }
 });
 
+// Resize: rebuild columns
+window.addEventListener('resize', ()=>{
+    const imgs = allImages.slice(); // copy
+    initColumns();
+    imgs.forEach(img=> appendImageToColumn(img));
+});
+
 // Initial load
+initColumns();
 addImages(50);
 
-// Auto-refresh new images at top
-setInterval(()=>{
-    addImages(20);
-},300);
+// Auto-refresh
+setInterval(()=> addImages(10),30000);
 
 function updateFooter(){
     document.getElementById('footerOverlay').textContent = `Subreddit: r/${subreddit} | Images loaded: ${allImages.length}`;
