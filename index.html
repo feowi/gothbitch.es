@@ -5,52 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GothGirls Live Feed</title>
 <style>
-  /* Basic reset and modern background */
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Arial', sans-serif; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
-  
-  /* Splash screen */
-  #splash {
-    position: fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#121212;
-    color:#ff69b4;
-    font-size:3rem;
-    opacity:1;
-    transition: opacity 1s ease;
-    z-index:9999;
-  }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Arial',sans-serif; background:#121212; color:#fff; min-height:100vh; overflow-x:hidden; display:flex; flex-direction:column; align-items:center; }
 
-  #images { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 20px; opacity: 0; transition: opacity 1s ease; }
+/* Splash */
+#splash {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    display:flex; justify-content:center; align-items:center;
+    background:#121212; color:#ff69b4; font-size:3rem; opacity:1; transition: opacity 1s ease; z-index:9999;
+}
 
-  img {
-    max-width: 400px;
-    border-radius: 15px;
-    cursor: pointer;
-    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease;
-    opacity: 1;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
-  img:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(255,105,180,0.6); }
+/* Masonry container */
+#images {
+    column-gap: 15px; width:95%; max-width:1400px; margin-top:20px; opacity:0; transition: opacity 1s ease;
+}
+@media (min-width:1200px){#images{column-count:4;}}
+@media (min-width:900px){#images{column-count:3;}}
+@media (min-width:600px){#images{column-count:2;}}
+@media (max-width:599px){#images{column-count:1;}}
 
-  .highlight { box-shadow: 0 0 30px 5px #ff69b4; }
+/* Images */
+#images img {
+    width:100%; border-radius:15px; margin-bottom:15px; display:block;
+    transition: transform 0.3s ease, opacity 0.5s ease, box-shadow 0.5s ease; opacity:1;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+#images img:hover{ transform: scale(1.05); box-shadow:0 8px 30px rgba(255,105,180,0.6); }
+.highlight{ box-shadow:0 0 30px 5px #ff69b4; }
 
-  #loadMore {
-    padding: 12px 25px;
-    font-size: 16px;
-    cursor: pointer;
-    margin: 20px;
-    border: none;
-    border-radius: 10px;
-    background: #ff69b4;
-    color: #fff;
-    transition: background 0.3s ease;
-  }
-  #loadMore:hover { background: #ff85c1; }
+/* Load More */
+#loadMore { padding:12px 25px; font-size:16px; cursor:pointer; margin:20px; border:none; border-radius:10px; background:#ff69b4; color:#fff; transition: background 0.3s ease; }
+#loadMore:hover{ background:#ff85c1; }
+
+/* Floating Menu */
+#menuToggle {
+    position:fixed; bottom:30px; right:30px; width:60px; height:60px;
+    background:#ff69b4; border-radius:50%; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:30px; color:#fff; z-index:1000; transition: transform 0.3s ease;
+}
+#menuToggle:hover{ transform: scale(1.1); }
+
+#menu {
+    position:fixed; bottom:100px; right:30px; display:flex; flex-direction:column; gap:15px; opacity:0; pointer-events:none; transition: all 0.4s ease;
+}
+#menu.active{ opacity:1; pointer-events:auto; transform: translateY(0); }
+
+.menu-item {
+    width:50px; height:50px; border-radius:50%; background:#ff69b4; display:flex; justify-content:center; align-items:center; color:#fff; font-size:18px; text-decoration:none; position:relative; transition: transform 0.3s ease, background 0.3s ease;
+}
+.menu-item:hover{ transform: scale(1.1); background:#ff85c1; }
+.menu-item::after{
+    content: attr(data-tooltip);
+    position:absolute; right:110%; white-space: nowrap; background:#ff69b4; padding:5px 10px; border-radius:5px;
+    opacity:0; pointer-events:none; transition: opacity 0.3s ease;
+}
+.menu-item:hover::after{ opacity:1; }
 </style>
 </head>
 <body>
@@ -59,6 +67,13 @@
 <div id="images"></div>
 <button id="loadMore">Load More</button>
 
+<!-- Floating Menu -->
+<div id="menuToggle">☰</div>
+<div id="menu">
+    <a href="https://bready.lol" target="_blank" class="menu-item" data-tooltip="BREADY.LOL">B</a>
+    <a href="https://example.com" target="_blank" class="menu-item" data-tooltip="Example">E</a>
+</div>
+
 <script>
 const subreddit = 'GothGirls';
 const imagesContainer = document.getElementById('images');
@@ -66,104 +81,88 @@ const loadMoreBtn = document.getElementById('loadMore');
 let after = null;
 let loadingOlder = false;
 
-// Splash screen fade
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        document.getElementById('splash').style.opacity = 0;
-        document.getElementById('images').style.opacity = 1;
-        setTimeout(() => document.getElementById('splash').remove(), 1000);
-    }, 1000); // 
+// Splash fade
+window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+        document.getElementById('splash').style.opacity=0;
+        document.getElementById('images').style.opacity=1;
+        setTimeout(()=>document.getElementById('splash').remove(),1000);
+    },2000);
 });
 
-// Shuffle helper
-function shuffleArray(array) {
-    return array.sort(() => Math.random() - 0.5);
+// Menu toggle
+const menuToggle = document.getElementById('menuToggle');
+const menu = document.getElementById('menu');
+menuToggle.addEventListener('click', ()=> menu.classList.toggle('active'));
+
+function shuffleArray(array){ return array.sort(()=>Math.random()-0.5); }
+
+// Fetch new posts
+async function fetchNewImages(limit=20){
+    try{
+        const res = await fetch(`https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`);
+        const data = await res.json();
+        return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
+    }catch(err){ console.error(err); return []; }
 }
 
-// Fetch new posts (latest posts for auto-refresh)
-async function fetchNewImages(limit = 40) {
-    try {
-        const response = await fetch(`https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`);
-        const data = await response.json();
-        let urls = data.data.children
-            .map(post => post.data.url)
-            .filter(url => url.match(/\.(jpeg|jpg|gif|png)$/));
-        return shuffleArray(urls);
-    } catch (err) {
-        console.error(err);
-        return [];
-    }
-}
-
-// Fetch older posts (for infinite scroll / Load More)
-async function fetchOlderImages(limit = 20) {
-    if (loadingOlder) return [];
-    loadingOlder = true;
-    try {
-        const url = after 
-            ? `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&after=${after}`
-            : `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
-        const response = await fetch(url);
-        const data = await response.json();
+// Fetch older posts
+async function fetchOlderImages(limit=50){
+    if(loadingOlder) return [];
+    loadingOlder=true;
+    try{
+        const url = after ? `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&after=${after}`
+                          : `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
+        const res = await fetch(url);
+        const data = await res.json();
         after = data.data.after;
-        let urls = data.data.children
-            .map(post => post.data.url)
-            .filter(url => url.match(/\.(jpeg|jpg|gif|png)$/));
-        return shuffleArray(urls);
-    } catch (err) {
-        console.error(err);
-        return [];
-    } finally {
-        loadingOlder = false;
-    }
+        return shuffleArray(data.data.children.map(post=>post.data.url).filter(url=>url.match(/\.(jpeg|jpg|gif|png)$/)));
+    }catch(err){ console.error(err); return [];}
+    finally{ loadingOlder=false; }
 }
 
 // Display images
-function displayImages(urls, prepend = false) {
-    const existing = Array.from(imagesContainer.children).map(img => img.src);
-    urls.forEach(url => {
-        if (!existing.includes(url)) {
+function displayImages(urls, prepend=false){
+    const existing = Array.from(imagesContainer.children).map(img=>img.src);
+    urls.forEach(url=>{
+        if(!existing.includes(url)){
             const img = document.createElement('img');
-            img.src = url;
-            img.style.opacity = 0;
-            if (prepend) imagesContainer.prepend(img);
+            img.src=url; img.style.opacity=0;
+            if(prepend) imagesContainer.prepend(img);
             else imagesContainer.appendChild(img);
-            setTimeout(() => {
-                img.style.opacity = 1;
-                if (prepend) {
-                    img.classList.add('highlight');
-                    setTimeout(() => img.classList.remove('highlight'), 2000);
-                }
-            }, 50);
+            setTimeout(()=>{
+                img.style.opacity=1;
+                if(prepend){ img.classList.add('highlight'); setTimeout(()=>img.classList.remove('highlight'),2000); }
+            },50);
         }
     });
 }
 
-// Initial load
-(async function init() {
-    const urls = await fetchOlderImages(50);
-    displayImages(urls);
-})();
-
-// Infinite scroll: load older posts
-window.addEventListener('scroll', async () => {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-        const urls = await fetchOlderImages(30);
+// Preload multiple pages
+(async function initialLoad(){
+    for(let i=0;i<5;i++){
+        const urls = await fetchOlderImages(50);
         displayImages(urls);
     }
-});
+})();
+
+// Infinite auto-load older
+setInterval(async ()=>{
+    const urls = await fetchOlderImages(50);
+    displayImages(urls);
+},5000);
 
 // Load More button
-loadMoreBtn.addEventListener('click', async () => {
-    const urls = await fetchOlderImages(30);
+loadMoreBtn.addEventListener('click', async ()=>{
+    const urls = await fetchOlderImages(50);
     displayImages(urls);
 });
 
-// Auto-refresh: prepend latest posts every 30s
-setInterval(async () => {
-    const urls = await fetchNewImages(10);
-    displayImages(urls, true);
-}, 30000);
+// Auto-refresh
+setInterval(async ()=>{
+    const urls = await fetchNewImages(20);
+    displayImages(urls,true);
+},30000);
 </script>
 
 </body>
